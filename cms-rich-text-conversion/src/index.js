@@ -18,7 +18,20 @@ function documentStringToPlainTextString(input) {
   return documentToPlainTextString(parsed)
 }
 
+/*
+  * INFO: Helpful within retool to not worry about type checking
+  * This was created because retool doesn't really offer type enforcement
+  * Adding conditionals all over retool is quite annoying
+  */
+function richTextToPlainText(input) {
+  if (typeof input === 'string') {
+    return documentStringToPlainTextString(input)
+  } else {
+    return documentToPlainTextString(input);
+  }
+}
+
 window.htmlToRichTextDoc = parseHtml;
 window.richTextDocToHtml = documentToHtmlString;
-window.richTextDocToPlainText = documentToPlainTextString;
+window.richTextDocToPlainText = richTextToPlainText;
 window.richTextDocStringToPlainText = documentStringToPlainTextString;
