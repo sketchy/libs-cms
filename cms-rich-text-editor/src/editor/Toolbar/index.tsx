@@ -8,6 +8,8 @@ import { ToolbarListButton } from '../plugins/List';
 import { ToolbarBoldButton } from '../plugins/Marks/Bold';
 import { ToolbarItalicButton } from '../plugins/Marks/Italic';
 import { ToolbarUnderlineButton } from '../plugins/Marks/Underline';
+import { ToolbarSuperscriptButton } from '../plugins/Marks/Superscript';
+import { ToolbarSubscriptButton } from '../plugins/Marks/Subscript';
 
 type ToolbarProps = {
   isDisabled?: boolean;
@@ -60,6 +62,19 @@ const Toolbar = ({ isDisabled, controls }: ToolbarProps) => {
         {showControl('bold', <ToolbarBoldButton isDisabled={isDisabled} />)}
         {showControl('italics', <ToolbarItalicButton isDisabled={isDisabled} />)}
         {showControl('underline', <ToolbarUnderlineButton isDisabled={isDisabled} />)}
+        {showControl('superscript',
+          <>
+            <span className={styles.divider} />
+            <ToolbarSuperscriptButton isDisabled={isDisabled} />
+          </>
+        )}
+        {showControl('subscript',
+          <>
+            {/* Only show divider if superscript is disabled */}
+            {controls.indexOf('superscript') === -1 ? <span className={styles.divider} /> : <></>}
+            <ToolbarSubscriptButton isDisabled={isDisabled} />
+          </>
+        )}
         {showControl('list',
           <>
             <span className={styles.divider} />
@@ -75,8 +90,6 @@ const Toolbar = ({ isDisabled, controls }: ToolbarProps) => {
 
         {/* <ToolbarHeadingButton isDisabled={isDisabled || !canInsertBlocks} /> */}
         {/* {validationInfo.isAnyMarkEnabled && <span className={styles.divider} />} */}
-        {/* <ToolbarSuperscriptButton isDisabled={isDisabled} /> */}
-        {/* <ToolbarSubscriptButton isDisabled={isDisabled} /> */}
         {/* <ToolbarCodeButton isDisabled={isDisabled} /> */}
         {/* {shouldShowDropdown && <Dropdown sdk={sdk} isDisabled={isDisabled} />} */}
         {/* {validationInfo.isAnyBlockFormattingEnabled && <span className={styles.divider} />} */}

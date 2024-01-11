@@ -1624,7 +1624,7 @@
   dependencies:
     contentful-management ">=7.30.0"
 
-"@contentful/rich-text-plain-text-renderer@^16.0.4":
+"@contentful/rich-text-plain-text-renderer@^16.0.4", "@contentful/rich-text-plain-text-renderer@^16.0.7":
   version "16.0.7"
   resolved "https://registry.yarnpkg.com/@contentful/rich-text-plain-text-renderer/-/rich-text-plain-text-renderer-16.0.7.tgz#2bac73d725420d7d6aae7490041bb7e45c666660"
   integrity sha512-ryFZP3Q279kG5xfL5XmdxFv2peoivGdVq+ZglOlGPfSmpV/fXlrEW9eg/zY7vRJpLQt/XOpf2dQo4giecKPhCA==
