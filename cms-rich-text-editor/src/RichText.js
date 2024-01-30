@@ -65,12 +65,16 @@ export const RichText = ({ model, modelUpdate }) => {
       height={typeof height === 'number' ? height : DEFAULTS.height} // retool passes a blank string for undefined values
       controls={controls || DEFAULTS.controls}
       value={richTextValue || DEFAULTS.value}
-      onChange={(value) => modelUpdate({
-        hasChanged: true,
-        value: value,
-        valueStringified: JSON.stringify(value),
-        valuePlainText: documentToPlainTextString(value),
-      })}
+      onChange={(value) => {
+        const stringifiedValue = JSON.stringify(value);
+
+        modelUpdate({
+          hasChanged: true,
+          value: value,
+          valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
+          valuePlainText: documentToPlainTextString(value),
+        })
+      }}
       onAction={(action) => console.log({ action })}
     />
   );
