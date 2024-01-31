@@ -44,8 +44,8 @@ export const RichText = ({ model, modelUpdate }) => {
   const { height, controls, initialValue } = model
 
   // Handle stringified json, allows passing of json or stringified json
-  let richTextValue = initialValue;
-  if (typeof richTextValue === 'string' && richTextValue.length) {
+  let richTextValue;
+  if (typeof initialValue === 'string' && initialValue.length) {
     try {
       richTextValue = JSON.parse(`${initialValue}`)
     } catch (e) {
@@ -53,11 +53,13 @@ export const RichText = ({ model, modelUpdate }) => {
     }
   }
 
-  // INFO: this value is used to detect updates, we don't want it prepopulated on mount, this ensures that the model value is set to null
-  // INFO: UPDATE - In practice, this wasn't ideal and causes confusion around validation, etc.
-  // TODO: This should be removed or updated to ensure retool value and this value are in sync, this WILL break retool modules when removed and require updates within those modules.
   React.useEffect(() => {
-    modelUpdate({ value: null })
+    modelUpdate({
+      hasChanged: false,
+      value: richTextValue,
+      valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
+      valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
+    })
   }, [])
 
   return (
