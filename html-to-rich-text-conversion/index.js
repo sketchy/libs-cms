@@ -1,7 +1,7 @@
 import TurndownService from "turndown";
 import { richTextFromMarkdown } from "@contentful/rich-text-from-markdown";
 
-const WILL_COPY = false;
+const WILL_COPY = true;
 
 const EXAMPLES = {
   fail: '<html><div class="t_symbol ui-draggable ui-draggable-handle circle small red" id="t_symbol_1" style="left: 386.602px; top: 232.602px;">1<div class="t_tooltip_content_wrap left" style="width: auto;"><div class="t_tooltip_name">Pushing back on boulder + net</div><div class="t_tooltip_description">The <b>sum of all forces</b> on an object is called <b><i>F</i><sub>net</sub></b>; since vectors add together, forces that cancel out can be ignored</div></div></div></html>',
@@ -12,7 +12,7 @@ const EXAMPLES = {
   weird: `In addition to elevated CRP/ESR, ≥3 of 6 lab findings must be present to suspected incomplete KD - anemia for age, WBC ≥15k, <b>elevated ALT<!--?b-->, albumin ≤3 g/dL, urine ≥10 WBC/HPF, plt ≥450k after 7th day of fever <b>(Labs)</b></b>`,
   new: `In <strong>β</strong><sup><strong>-</strong></sup><strong> decay</strong>, <strong>a neutron decays into a proton</strong>, <strong>emitting an electron</strong>; β<sup>-</sup> decay increases the atomic number by 1`,
   new2: `R<b><sub>01</sub></b>Я penguins`,
-  new3: `\"GruMP\" ↔<b> \"</b>IMP\"`,
+  new3: `GruMP <b> #</b>IMP GruMP <b> #</b>IMP`,
   new4: `<b>H</b>azardous <b>D</b>**p`,
   cool: `<ul>
   <li>Glycolysis Payoff Phase: Steps 6 through 10 of glycolysis</li>
@@ -126,9 +126,26 @@ const SUP_RULE = {
   replacement: (content) => `![superscript](${content})`
 }
 
+const boldMark = { type: 'bold' }
 function startsAndEndsWithAsterisks(str) {
   const pattern = /^\*\*.*\*\*$/;
   return pattern.test(str);
+}
+
+function hasEnclosedAsterisks(str) {
+  const regex = /\*\*[^*]+\*\*/;
+  return regex.test(str);
+}
+
+function extractBoldText(input) {
+  // Split the input string by asterisks
+  const parts = input.split("**");
+
+  // Map the parts to objects
+  return parts.map((text, index) => ({
+    text: text,
+    bold: index % 2 !== 0 // bold is true for odd indices
+  }));
 }
 
 const TDS = new TurndownService()
@@ -136,6 +153,51 @@ const TDS = new TurndownService()
   .addRule('listItem', LIST_ITEM_RULE)
   .addRule('sup', SUP_RULE)
   .addRule('sub', SUB_RULE);
+
+function catchSupAndSubBoldContainer(contents) {
+  const first = 0;
+  const last = contents?.length - 1 || 0;
+
+  // determine if contents have a missed bold container
+  const boldStart = contents[first]?.value?.indexOf('**') === 1;
+  const boldEnd = contents[last]?.value?.indexOf('**') === 0;
+
+  if (boldStart && boldEnd) {
+    // Add bold mark to all items in between
+    contents.forEach((c, ci) => {
+      if (ci !== first && ci !== last && c?.marks) c.marks.push({ type: 'bold' });
+    });
+
+    // remove markdown bold marks
+    contents[first].value = contents[first].value.replace('**', '');
+    contents[last].value = contents[last].value.replace('**', '');
+  }
+}
+
+function catchSupAndSubMissedBoldText(contents) {
+  contents.forEach((c) => {
+    if (startsAndEndsWithAsterisks(c.value)) {
+      c.value = c.value?.replace(/\*\*/g, '');
+      if (c.marks) {
+        c.marks.push(boldMark);
+      } else {
+        c.marks = [boldMark];
+      }
+    }
+  });
+}
+
+function catchMissedBoldText(item) {
+  if (!hasEnclosedAsterisks(item.value)) return
+
+  const extracted = extractBoldText(item.value);
+  return extracted.map(e => ({
+    nodeType: 'text',
+    value: e.text,
+    marks: e.bold ? [boldMark] : [],
+    data: {},
+  }))
+}
 
 /*
  * Reformat the rich text to properly contain superscript and subscript marks
@@ -153,46 +215,31 @@ function reformatRichText(rtx) {
     const item = rtx.content[i];
 
     if (item.data?.join && i > 0) {
-      const next = rtx.content[i + 1]
-      const prev = newContent[newContent.length - 1]
-      log('\n>>> JOIN')
-      log('next:\n', next)
-      log('prev:\n', prev)
-      log('<<< JOIN\n')
+      // Superscript and Subscript handling
+      const next = rtx.content[i + 1];
+      const prev = newContent[newContent.length - 1];
 
-      item.data = {}
+      item.data = {};
       prev.content?.push(item);
 
       if (next?.content?.length) {
-        ignoreIndex.push(i + 1)
+        ignoreIndex.push(i + 1);
         newContent[newContent.length - 1].content?.push(...next.content);
       } else if (prev.value?.length && !prev.content) {
-        const marks = [...prev.marks, ...item.marks]
-        newContent.push(Object.assign({}, item, { marks }))
+        const marks = [...prev.marks, ...item.marks];
+        newContent.push(Object.assign({}, item, { marks }));
       }
 
-      const contents = newContent[0].content;
-      const boldStart = contents[0]?.value.indexOf('**') === 1
-      const boldEnd = contents[contents.length - 1]?.value.indexOf('**') === 0
-
-      if (boldStart && boldEnd) {
-        // Add bold mark to all items
-        newContent[0].content.forEach((c, i) => {
-          if (i !== 0 && i !== contents.length - 1 && c?.marks) c.marks.push({ type: 'bold' })
-        })
-
-        newContent[0].content[0].value = newContent[0].content[0].value.replace('**', '')
-        newContent[0].content[contents.length - 1].value = newContent[0].content[contents.length - 1].value.replace('**', '')
+      // Handle weirdness with sup / sub + bold handling
+      const contents = newContent[0]?.content;
+      if (contents?.length) {
+        catchSupAndSubBoldContainer(contents)
+        catchSupAndSubMissedBoldText(contents)
       }
-
-      newContent[0].content.forEach(c => {
-        if (startsAndEndsWithAsterisks(c.value)) {
-          c.value = c.value.replace(/\*\*/g, '')
-        }
-      })
-
     } else if (!ignoreIndex.includes(i)) {
-      newContent.push(item);
+      const updated = catchMissedBoldText(item);
+      const content = updated || [item];
+      newContent.push(...content);
 
       // If the item has its own content, recurse into it
       if (item.content) {
@@ -203,7 +250,7 @@ function reformatRichText(rtx) {
 
   rtx.content = newContent;
 
-  return rtx
+  return rtx;
 }
 
 /*
@@ -231,12 +278,12 @@ async function htmlToRichText(html) {
   return reformat
 }
 
-const test = EXAMPLES.new3;
+const test = EXAMPLES.new4;
 log(test)
 log('')
 const formatted = await htmlToRichText(test)
-// log(JSON.stringify(formatted, null, 2))
-log(JSON.stringify(formatted))
+log(JSON.stringify(formatted, null, 2))
+// log(JSON.stringify(formatted))
 log('')
 
 if (WILL_COPY) {
