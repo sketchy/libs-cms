@@ -10,6 +10,7 @@ import { ToolbarItalicButton } from '../plugins/Marks/Italic';
 import { ToolbarUnderlineButton } from '../plugins/Marks/Underline';
 import { ToolbarSuperscriptButton } from '../plugins/Marks/Superscript';
 import { ToolbarSubscriptButton } from '../plugins/Marks/Subscript';
+import { ToolbarTableButton } from '../plugins/Table/components/ToolbarButton';
 
 type ToolbarProps = {
   isDisabled?: boolean;
@@ -95,7 +96,11 @@ const Toolbar = ({ isDisabled, controls }: ToolbarProps) => {
         {/* {validationInfo.isAnyBlockFormattingEnabled && <span className={styles.divider} />} */}
         {/* <ToolbarQuoteButton isDisabled={isDisabled || !canInsertBlocks} /> */}
         {/* <ToolbarHrButton isDisabled={isDisabled || !canInsertBlocks} /> */}
-        {/* <ToolbarTableButton isDisabled={shouldDisableTables} /> */}
+        {showControl('table', <>
+            <span className={styles.divider} />
+            <ToolbarTableButton isDisabled={isDisabled} />
+          </>
+        )}
       </div>
     </Flex>
   );
