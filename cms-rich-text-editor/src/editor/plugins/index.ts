@@ -14,6 +14,7 @@ import { createTextPlugin } from './Text';
 import { createTrackingPlugin, RichTextTrackingActionHandler } from './Tracking';
 import { createTrailingParagraphPlugin } from './TrailingParagraph';
 import { createVoidsPlugin } from './Voids';
+import { createTablePlugin } from './Table';
 
 export const getPlugins = (
   onAction?: RichTextTrackingActionHandler,
@@ -34,6 +35,9 @@ export const getPlugins = (
 
     // Marks
     createMarksPlugin(),
+
+    // Table
+    createTablePlugin(),
 
     // Other
     createTrailingParagraphPlugin(),

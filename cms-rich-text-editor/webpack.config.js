@@ -8,8 +8,11 @@ module.exports = {
     publicPath: "/",
   },
   resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
     alias: {
-      '@': path.resolve(__dirname, './src'), // Adjust the path to match your project structure
+      '@': path.resolve(__dirname, './src'),
+      'react/jsx-runtime': require.resolve('react/jsx-runtime'),
+      'react/jsx-dev-runtime': require.resolve('react/jsx-dev-runtime')
     },
   },
   devServer: {
@@ -46,8 +49,5 @@ module.exports = {
         use: "file-loader",
       },
     ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
   },
 };
