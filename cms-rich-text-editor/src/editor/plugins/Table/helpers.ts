@@ -27,7 +27,9 @@ import { PlateEditor, NodeEntry, Ancestor, Node } from '../../internal/types';
 export function insertTableAndFocusFirstCell(editor: PlateEditor): void {
   const table = {
     type: BLOCKS.TABLE,
-    data: {},
+    data: {
+      headerBackgroundColor: undefined, // Default to gray200 background
+    },
     children: [
       getEmptyRowNode(editor, { colCount: 2, header: true }),
       getEmptyRowNode(editor, { colCount: 2 }),

@@ -14,7 +14,9 @@ import { getAboveNode } from '../../../internal/queries';
 import { PlateEditor } from '../../../internal/types';
 import { RichTextTrackingActionName } from '../../../plugins/Tracking';
 import { addColumnLeft, addColumnRight, addRowAbove, addRowBelow, setHeader } from '../actions';
+import { setHeaderBackgroundColor } from '../actions/setHeaderBackgroundColor';
 import { isTableHeaderEnabled } from '../helpers';
+import { HeaderBackgroundColorPicker } from './HeaderBackgroundColorPicker';
 
 export const styles = {
   topRight: css({
@@ -39,13 +41,27 @@ export const TableActions = () => {
   const isDisabled = useReadOnly();
   const [isOpen, setOpen] = React.useState(false);
   const [isHeaderEnabled, setHeaderEnabled] = React.useState(false);
+  const [isColorPickerOpen, setColorPickerOpen] = React.useState(false);
+  const [currentHeaderColor, setCurrentHeaderColor] = React.useState<string | undefined>();
 
   const close = React.useCallback(() => {
     setOpen(false);
   }, []);
 
+  const closeColorPicker = React.useCallback(() => {
+    setColorPickerOpen(false);
+  }, []);
+
   React.useEffect(() => {
     setHeaderEnabled(Boolean(editor && isTableHeaderEnabled(editor)));
+    
+    // Get current header background color from table data
+    if (editor) {
+      const tableNode = getAboveNode(editor, {
+        match: { type: BLOCKS.TABLE },
+      });
+      setCurrentHeaderColor((tableNode?.[0]?.data as Record<string, unknown>)?.headerBackgroundColor as string | undefined);
+    }
   }, [editor]);
 
   const canInsertRowAbove = React.useMemo(() => {
@@ -74,6 +90,22 @@ export const TableActions = () => {
     setHeaderEnabled(value);
     setHeader(editor, value);
   }, [editor, close, isHeaderEnabled]);
+
+  const handleColorSelect = React.useCallback((color: string | undefined) => {
+    if (!editor) {
+      return;
+    }
+
+    setCurrentHeaderColor(color);
+    setHeaderBackgroundColor(editor, color);
+    
+    // Track the action (using generic edit action since setHeaderBackgroundColor is not defined)
+    editor.tracking.onViewportAction('edit', { 
+      action: 'setHeaderBackgroundColor',
+      color: color || 'default',
+      tableSize: getCurrentTableSize(editor) 
+    });
+  }, [editor]);
 
   const action = React.useCallback(
     (cb: TableAction, type: 'insert' | 'remove', element: 'Table' | 'Row' | 'Column') => () => {
@@ -127,6 +159,25 @@ export const TableActions = () => {
         <Menu.Item onClick={toggleHeader}>
           {isHeaderEnabled ? 'Disable table header' : 'Enable table header'}
         </Menu.Item>
+        {isHeaderEnabled && (
+          <Menu
+            placement="right-start"
+            isOpen={isColorPickerOpen}
+            onOpen={() => setColorPickerOpen(true)}
+            onClose={closeColorPicker}
+          >
+            <Menu.Trigger>
+              <Menu.Item>
+                Header background color
+              </Menu.Item>
+            </Menu.Trigger>
+            <HeaderBackgroundColorPicker
+              currentColor={currentHeaderColor}
+              onColorSelect={handleColorSelect}
+              onClose={closeColorPicker}
+            />
+          </Menu>
+        )}
         <Menu.Divider />
         <Menu.Item onClick={action(deleteRow, 'remove', 'Row')}>Delete row</Menu.Item>
         <Menu.Item onClick={action(deleteColumn, 'remove', 'Column')}>Delete column</Menu.Item>

@@ -1,16 +1,18 @@
 import * as React from 'react';
 
 import tokens from '@contentful/f36-tokens';
-import { TableHeaderCell } from '@contentful/rich-text-types';
+import { BLOCKS, TableHeaderCell } from '@contentful/rich-text-types';
 import { css } from 'emotion';
 import { useSelected } from 'slate-react';
 
+import { getAboveNode } from '../../../internal/queries';
 import { RenderElementProps } from '../../../internal/types';
+import { useContentfulEditor } from '../../../ContentfulEditorProvider';
 import { TableActions } from './TableActions';
 
-const style = css`
+const getHeaderCellStyle = (backgroundColor?: string) => css`
   background-clip: padding-box;
-  background-color: ${tokens.gray200};
+  background-color: ${backgroundColor || tokens.gray200};
   border: 1px solid ${tokens.gray400};
   border-collapse: collapse;
   padding: 10px 12px;
@@ -26,6 +28,18 @@ const style = css`
 
 export const HeaderCell = (props: RenderElementProps) => {
   const isSelected = useSelected();
+  const editor = useContentfulEditor();
+  
+  // Get the table's background color from its data
+  const tableNode = React.useMemo(() => {
+    if (!editor) return null;
+    return getAboveNode(editor, {
+      match: { type: BLOCKS.TABLE },
+    });
+  }, [editor]);
+  
+  const headerBackgroundColor = (tableNode?.[0]?.data as Record<string, unknown>)?.headerBackgroundColor as string | undefined;
+  const style = getHeaderCellStyle(headerBackgroundColor);
 
   return (
     <th
