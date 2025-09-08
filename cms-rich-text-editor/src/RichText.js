@@ -54,12 +54,19 @@ export const RichText = ({ model, modelUpdate }) => {
   }
 
   React.useEffect(() => {
+    console.log({
+      message: 'useEffect is running',
+      hasChanged: false,
+      value: richTextValue,
+      valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
+      valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
+    });
     modelUpdate({
       hasChanged: false,
       value: richTextValue,
       valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
       valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
-    })
+    });
   }, [initialValue])
 
   return (
