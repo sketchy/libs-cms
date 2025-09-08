@@ -60,7 +60,7 @@ export const RichText = ({ model, modelUpdate }) => {
       valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
       valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
     })
-  }, [])
+  }, [initialValue])
 
   return (
     <Editor
@@ -70,12 +70,21 @@ export const RichText = ({ model, modelUpdate }) => {
       onChange={(value) => {
         const stringifiedValue = JSON.stringify(value);
 
-        modelUpdate({
+        console.log({
+          value,
+          stringifiedValue,
+        });
+
+        const modelUpdate = {
           hasChanged: true,
           value: value,
           valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
           valuePlainText: documentToPlainTextString(value),
-        })
+        };
+
+        console.log({modelUpdate});
+
+        modelUpdate(modelUpdate);
       }}
       onAction={(action) => console.log({ action })}
     />
