@@ -6,8 +6,6 @@ const STYLE_EDITOR_BORDER = `1px solid ${tokens.gray400}`;
 export const styles = {
   root: css({
     position: 'relative',
-    resize: 'vertical',
-    overflow: 'hidden',
   }),
   editor: css({
     borderRadius: `0 0 ${tokens.borderRadiusMedium} ${tokens.borderRadiusMedium}`,
