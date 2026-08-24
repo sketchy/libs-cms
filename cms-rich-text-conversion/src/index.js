@@ -2,12 +2,14 @@ import { documentToHtmlString } from '@contentful/rich-text-html-renderer';
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer';
 import { parseHtml } from 'contentful-html-rich-text-converter';
 
+import { applyFontSizeMarks, fontSizeRenderMark } from './fontSize';
+
 /*
  * INFO: This is used to alert us of version mismatches in retool and override older versions
  * Helps fix an error that isn't super likely, but a real pain to track down within Retool
  * More info: https://coda.io/d/Product-Project-Cortex_dhy-qH2Cem5/Retool-Learnings-Best-Practices_suL_Z?searchClick=60d0037f-c0af-454a-b24e-df9445b7442a_hy-qH2Cem5#_luwLZ
  */
-const VERSION = '0.1.4';
+const VERSION = '0.1.5';
 
 /*
  * INFO: Helpful within retool to not worry about type checking
@@ -37,11 +39,21 @@ function ensureJSON(input) {
 }
 
 function richTextToHTML(input) {
-  return documentToHtmlString(ensureJSON(input))
+  return documentToHtmlString(ensureJSON(input), {
+    renderMark: fontSizeRenderMark,
+  })
 }
 
 function richTextToPlainText(input) {
   return documentToPlainTextString(ensureJSON(input))
+}
+
+function htmlToRichTextDoc(input) {
+  const document = parseHtml(input);
+  if (typeof input !== 'string') {
+    return document;
+  }
+  return applyFontSizeMarks(document, input);
 }
 
 const windowVersion = window.richTextDocRetoolVersion;
@@ -56,7 +68,7 @@ if (!windowVersion || hasOldVersion) {
   )
 
   window.richTextDocRetoolVersion = VERSION
-  window.htmlToRichTextDoc = parseHtml;
+  window.htmlToRichTextDoc = htmlToRichTextDoc;
   window.richTextDocToHtml = richTextToHTML;
   window.richTextDocToPlainText = richTextToPlainText;
 }

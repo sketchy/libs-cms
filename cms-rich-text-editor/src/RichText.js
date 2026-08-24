@@ -33,6 +33,7 @@ const DEFAULTS = {
     'subscript',
     'list',
     'link',
+    'font-size',
   ],
   value: defaultInitialValue,
 }
@@ -54,8 +55,7 @@ export const RichText = ({ model, modelUpdate }) => {
   }
 
   React.useEffect(() => {
-
-    const modelUpdate = {
+    const nextModel = {
       hasChanged: false,
       value: richTextValue,
       valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
@@ -63,9 +63,9 @@ export const RichText = ({ model, modelUpdate }) => {
     };
     console.log({
       message: 'useEffect is running',
-      modelUpdate,
+      modelUpdate: nextModel,
     })
-    modelUpdate(modelUpdate);
+    modelUpdate(nextModel);
   }, [initialValue])
 
   return (
@@ -81,16 +81,16 @@ export const RichText = ({ model, modelUpdate }) => {
           stringifiedValue,
         });
 
-        const modelUpdate = {
+        const nextModel = {
           hasChanged: true,
           value: value,
           valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
           valuePlainText: documentToPlainTextString(value),
         };
 
-        console.log({modelUpdate});
+        console.log({ modelUpdate: nextModel });
 
-        modelUpdate(modelUpdate);
+        modelUpdate(nextModel);
       }}
       onAction={(action) => console.log({ action })}
     />

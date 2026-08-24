@@ -12,7 +12,7 @@ export const styles = {
     border: STYLE_EDITOR_BORDER,
     borderTop: 0,
     padding: '20px',
-    fontSize: tokens.spacingM,
+    fontSize: '14px',
     fontFamily: tokens.fontStackPrimary,
     // minHeight: '200px',
     // height: '200px',

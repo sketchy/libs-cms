@@ -20,6 +20,8 @@ export interface Text extends p.TText {
   [MARKS.UNDERLINE]?: boolean;
   [MARKS.SUPERSCRIPT]?: boolean;
   [MARKS.SUBSCRIPT]?: boolean;
+  fontSize12?: boolean;
+  fontSize16?: boolean;
 }
 
 export interface Element extends p.TElement {

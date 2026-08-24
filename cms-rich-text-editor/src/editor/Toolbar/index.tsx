@@ -6,6 +6,7 @@ import { css } from 'emotion';
 import { ToolbarHyperlinkButton } from '../plugins/Hyperlink';
 import { ToolbarListButton } from '../plugins/List';
 import { ToolbarBoldButton } from '../plugins/Marks/Bold';
+import { ToolbarFontSizeDropdown } from '../plugins/Marks/components/ToolbarFontSizeDropdown';
 import { ToolbarItalicButton } from '../plugins/Marks/Italic';
 import { ToolbarUnderlineButton } from '../plugins/Marks/Underline';
 import { ToolbarSuperscriptButton } from '../plugins/Marks/Superscript';
@@ -55,7 +56,7 @@ const styles = {
   }),
 };
 
-const Toolbar = ({ isDisabled, controls }: ToolbarProps) => {
+const Toolbar = ({ isDisabled, controls = [] }: ToolbarProps) => {
   const showControl = (ctrl, cmpnt) => controls.indexOf(ctrl) > -1 ? cmpnt : <></>
   return (
     <Flex testId="toolbar" className={styles.toolbar} alignItems="center">
@@ -99,6 +100,12 @@ const Toolbar = ({ isDisabled, controls }: ToolbarProps) => {
         {showControl('table', <>
             <span className={styles.divider} />
             <ToolbarTableButton isDisabled={isDisabled} />
+          </>
+        )}
+        {showControl('font-size',
+          <>
+            <span className={styles.divider} />
+            <ToolbarFontSizeDropdown isDisabled={isDisabled} />
           </>
         )}
       </div>
