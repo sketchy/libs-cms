@@ -9,10 +9,14 @@ import { styles } from './RichTextEditor.styles';
 import { css, cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
+import { scrollSelectionIntoEditor } from './helpers/scrollSelectionIntoView';
 
 export const Editor = (props) => {
   const id = 'rich-text-editor'
-  const plugins = getPlugins(props.onAction, props.restrictedMarks, props.controls)
+  const plugins = React.useMemo(
+    () => getPlugins(props.onAction, props.restrictedMarks, props.controls),
+    [props.onAction, props.restrictedMarks, props.controls]
+  )
 
   const initialValue = React.useMemo(() => {
     return normalizeInitialValue(
@@ -57,6 +61,9 @@ export const Editor = (props) => {
             editableProps={{
               className: plateClassNames,
               readOnly: props.isDisabled,
+              // Keep the caret in the editor pane only. Default
+              // scrollIntoView() walks the iframe and Retool canvas.
+              scrollSelectionIntoView: scrollSelectionIntoEditor,
             }}
           />
         </PlateProvider>

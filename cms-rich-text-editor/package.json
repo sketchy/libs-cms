@@ -8,7 +8,8 @@
     "dev": "webpack-dev-server --mode=development",
     "dev-examples": "webpack-dev-server --mode=development --config webpack.examples.config.js",
     "prod": "webpack --mode=production",
-    "prod-examples": "webpack --mode=production --config webpack.examples.config.js"
+    "prod-examples": "webpack --mode=production --config webpack.examples.config.js",
+    "test": "node src/richTextModel.test.js && node src/editor/helpers/scrollSelectionIntoView.test.js"
   },
   "author": "bryan-at-retool",
   "license": "ISC",

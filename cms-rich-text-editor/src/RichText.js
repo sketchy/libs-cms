@@ -1,6 +1,12 @@
 import React from 'react'
 import { Editor } from './editor/Editor'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer';
+import {
+  getInitialValueKey,
+  parseRichTextValue,
+  resolveEditorDocument,
+  shouldSeedOutputs,
+} from './richTextModel'
 
 // Blank rich text json value to be used as "default" when no value is provided
 const defaultInitialValue = {
@@ -42,57 +48,60 @@ export const RichText = ({ model, modelUpdate }) => {
   // Model, etc comes from Retool module inputs
   // Thus far is only used for rich text editor:
   // https://sketchymedical.retool.com/editor/6e455d08-92eb-11ee-8a52-0fc062da2416/Cortex/Contentful%20Rich%20Text%20Editor
-  const { height, controls, initialValue } = model
+  const { height, controls, initialValue, value, appliedInitialKey, hasChanged } = model
+  const initialKey = getInitialValueKey(initialValue)
+  const parsedInitial = React.useMemo(() => parseRichTextValue(initialValue), [initialKey])
 
-  // Handle stringified json, allows passing of json or stringified json
-  let richTextValue;
-  if (typeof initialValue === 'string' && initialValue.length) {
-    try {
-      richTextValue = JSON.parse(`${initialValue}`)
-    } catch (e) {
-      console.error('Could not parse string as JSON for rich text', e)
-    }
-  }
+  // Prefer the last published document after an iframe remount. Do not
+  // depend on `value` here — feeding every modelUpdate back into Plate
+  // would reset the caret via setEditorValue.
+  const editorValue = React.useMemo(() => {
+    return resolveEditorDocument({
+      initialValue,
+      value,
+      appliedInitialKey,
+      hasChanged,
+    }) || DEFAULTS.value
+  }, [initialKey, appliedInitialKey])
 
   React.useEffect(() => {
-    const nextModel = {
+    if (!shouldSeedOutputs({ initialValue, appliedInitialKey })) {
+      return
+    }
+
+    // Remount of an in-progress edit from a build that did not yet stamp
+    // appliedInitialKey — keep the persisted document, just record the key.
+    if (appliedInitialKey === undefined && hasChanged && value) {
+      modelUpdate({ appliedInitialKey: initialKey })
+      return
+    }
+
+    modelUpdate({
       hasChanged: false,
-      value: richTextValue,
-      valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
-      valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
-    };
-    console.log({
-      message: 'useEffect is running',
-      modelUpdate: nextModel,
-    })
-    modelUpdate(nextModel);
-  }, [initialValue])
+      value: parsedInitial,
+      valueStringified: parsedInitial ? JSON.stringify(parsedInitial) : undefined,
+      valuePlainText: parsedInitial ? documentToPlainTextString(parsedInitial) : undefined,
+      appliedInitialKey: initialKey,
+    });
+  }, [initialKey])
+
+  const handleChange = React.useCallback((nextValue) => {
+    const stringifiedValue = JSON.stringify(nextValue);
+
+    modelUpdate({
+      hasChanged: true,
+      value: nextValue,
+      valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
+      valuePlainText: documentToPlainTextString(nextValue),
+    });
+  }, [modelUpdate])
 
   return (
     <Editor
       height={typeof height === 'number' ? height : DEFAULTS.height} // retool passes a blank string for undefined values
       controls={controls || DEFAULTS.controls}
-      value={richTextValue || DEFAULTS.value}
-      onChange={(value) => {
-        const stringifiedValue = JSON.stringify(value);
-
-        console.log({
-          value,
-          stringifiedValue,
-        });
-
-        const nextModel = {
-          hasChanged: true,
-          value: value,
-          valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
-          valuePlainText: documentToPlainTextString(value),
-        };
-
-        console.log({ modelUpdate: nextModel });
-
-        modelUpdate(nextModel);
-      }}
-      onAction={(action) => console.log({ action })}
+      value={editorValue}
+      onChange={handleChange}
     />
   );
 }

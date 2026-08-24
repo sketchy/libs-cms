@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toContentfulDocument } from '@contentful/contentful-slatejs-adapter';
 import { Document } from '@contentful/rich-text-types';
-import debounce from 'lodash/debounce';
 
 import schema from '../Schema';
 import { removeInternalMarks } from './removeInternalMarks';
 
 export const createOnChangeCallback = (handler?: (value: Document) => void) =>
-  debounce((document: unknown) => {
+  (document: unknown) => {
     const doc = removeInternalMarks(
       toContentfulDocument({
         document: document as any,
@@ -17,4 +16,4 @@ export const createOnChangeCallback = (handler?: (value: Document) => void) =>
 
     const cleanedDocument = removeInternalMarks(doc as Record<string, any>);
     handler?.(cleanedDocument);
-  }, 500);
+  };
