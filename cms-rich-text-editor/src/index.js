@@ -1,8 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { log } from './debugRte';
+import { ErrorBoundary, installGlobalCrashReporter } from './crashReporter';
 import { RichText } from "./RichText";
 
+installGlobalCrashReporter()
 log('boot');
 
 const ConnectedComponent = Retool.connectReactComponent(RichText)
@@ -59,7 +61,9 @@ lockToIframeViewport()
 window.addEventListener('resize', lockToIframeViewport)
 
 ReactDOM.render(
-  <ConnectedComponent />,
+  <ErrorBoundary>
+    <ConnectedComponent />
+  </ErrorBoundary>,
   mountNode
 );
 

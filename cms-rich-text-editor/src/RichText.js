@@ -3,6 +3,7 @@ import equal from 'fast-deep-equal'
 import { Editor } from './editor/Editor'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer';
 import { log, recordPublished, useLifecycle } from './debugRte'
+import { createGuardedModelUpdate } from './crashReporter'
 
 // Blank rich text json value to be used as "default" when no value is provided
 const defaultInitialValue = {
@@ -122,18 +123,26 @@ export const RichText = ({ model, modelUpdate }) => {
     hostDocChanged,
   })
 
-  const modelUpdateRef = React.useRef(modelUpdate)
-  modelUpdateRef.current = modelUpdate
+  const rawModelUpdateRef = React.useRef(modelUpdate)
+  rawModelUpdateRef.current = modelUpdate
+  const modelUpdateRef = React.useRef(null)
+  if (modelUpdateRef.current === null) {
+    modelUpdateRef.current = createGuardedModelUpdate((payload) => {
+      rawModelUpdateRef.current(payload)
+    })
+  }
 
   React.useEffect(() => {
+    // Identity-only initialValue updates (common in Retool after modelUpdate)
+    // must not write back again or React hits "Maximum update depth exceeded".
+    if (hasSeededOutputs && !hostDocChanged) {
+      return
+    }
+
     if (lastPublishedDoc && !equal(lastPublishedDoc, incomingDoc)) {
       const nextModel = toModelPayload(lastPublishedDoc, true)
       log('useEffect skipped clobber', { modelUpdate: nextModel })
       modelUpdateRef.current(nextModel)
-      return
-    }
-
-    if (hasSeededOutputs && !hostDocChanged) {
       return
     }
 
