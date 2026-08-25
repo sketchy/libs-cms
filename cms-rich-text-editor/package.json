@@ -6,6 +6,7 @@
   "scripts": {
     "clean": "rm -rf node_modules && rm -rf dist && rm -rf examples && yarn install",
     "dev": "webpack-dev-server --mode=development",
+    "playground": "webpack-dev-server --mode=development --config webpack.playground.config.js",
     "dev-examples": "webpack-dev-server --mode=development --config webpack.examples.config.js",
     "prod": "webpack --mode=production",
     "prod-examples": "webpack --mode=production --config webpack.examples.config.js"

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Rich Text Editor Playground</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --panel: #1f2937;
+      --border: #374151;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --danger: #fca5a5;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    body {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      min-height: 100%;
+    }
+    aside {
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+      padding: 16px;
+      overflow: auto;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .muted { color: var(--muted); }
+    label {
+      display: block;
+      margin: 12px 0 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    input[type="number"], select, textarea {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font: inherit;
+    }
+    textarea {
+      min-height: 180px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
+      margin-top: 4px;
+    }
+    .controls label {
+      margin: 0;
+      color: var(--text);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #374151;
+    }
+    .error { color: var(--danger); min-height: 1.2em; margin-top: 8px; }
+    main {
+      display: grid;
+      grid-template-rows: auto minmax(160px, 1fr);
+      min-width: 0;
+    }
+    .stage {
+      padding: 16px;
+    }
+    .frame-wrap {
+      border: 1px dashed var(--border);
+      background: #0b1220;
+      overflow: auto;
+      padding: 12px;
+    }
+    iframe {
+      display: block;
+      border: 1px solid #111;
+      background: white;
+    }
+    .output {
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      overflow: auto;
+      background: #0b1220;
+    }
+    .output pre {
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>Playground</h1>
+    <p class="muted">Mocks the Retool custom-component model. The editor runs in an iframe the same way it does in Retool.</p>
+
+    <div class="row">
+      <div>
+        <label for="iframeWidth">Iframe width</label>
+        <input id="iframeWidth" type="number" min="240" value="720" />
+      </div>
+      <div>
+        <label for="iframeHeight">Iframe height</label>
+        <input id="iframeHeight" type="number" min="120" value="240" />
+      </div>
+    </div>
+
+    <label>Controls</label>
+    <div class="controls" id="controls"></div>
+
+    <label for="initialFormat">initialValue format</label>
+    <select id="initialFormat">
+      <option value="object">JSON object (Retool default)</option>
+      <option value="string">JSON string</option>
+      <option value="null">null</option>
+    </select>
+
+    <label for="initialValue">initialValue</label>
+    <textarea id="initialValue" spellcheck="false"></textarea>
+
+    <div class="actions">
+      <button id="apply" type="button">Apply model (no remount)</button>
+      <button id="reload" class="secondary" type="button">Reload iframe</button>
+      <button id="longContent" class="secondary" type="button">Seed long content</button>
+    </div>
+    <div class="error" id="error"></div>
+  </aside>
+
+  <main>
+    <div class="stage">
+      <div class="muted">Retool-sized iframe</div>
+      <div class="frame-wrap">
+        <iframe id="editor" title="Rich text editor" src="/editor.html"></iframe>
+      </div>
+    </div>
+    <section class="output">
+      <div class="muted">Last <code>modelUpdate</code></div>
+      <pre id="output">Waiting for editor…</pre>
+    </section>
+  </main>
+
+  <script>
+    const CONTROL_OPTIONS = [
+      'bold',
+      'italics',
+      'underline',
+      'superscript',
+      'subscript',
+      'list',
+      'link',
+      'table',
+      'font-size',
+    ]
+    const DEFAULT_CONTROLS = [
+      'bold',
+      'underline',
+      'italics',
+      'superscript',
+      'subscript',
+      'list',
+      'link',
+      'font-size',
+    ]
+    const SAMPLE_DOCUMENT = {
+      nodeType: 'document',
+      data: {},
+      content: [
+        {
+          nodeType: 'paragraph',
+          data: {},
+          content: [
+            {
+              nodeType: 'text',
+              value: 'Hello from the playground. Type here and watch modelUpdate below.',
+              marks: [],
+              data: {},
+            },
+          ],
+        },
+      ],
+    }
+
+    const els = {
+      iframeWidth: document.getElementById('iframeWidth'),
+      iframeHeight: document.getElementById('iframeHeight'),
+      controls: document.getElementById('controls'),
+      initialFormat: document.getElementById('initialFormat'),
+      initialValue: document.getElementById('initialValue'),
+      apply: document.getElementById('apply'),
+      reload: document.getElementById('reload'),
+      longContent: document.getElementById('longContent'),
+      error: document.getElementById('error'),
+      output: document.getElementById('output'),
+      editor: document.getElementById('editor'),
+    }
+
+    CONTROL_OPTIONS.forEach((name) => {
+      const label = document.createElement('label')
+      label.innerHTML = `<input type="checkbox" value="${name}" ${DEFAULT_CONTROLS.includes(name) ? 'checked' : ''} /> ${name}`
+      els.controls.appendChild(label)
+    })
+
+    els.initialValue.value = JSON.stringify(SAMPLE_DOCUMENT, null, 2)
+
+    function selectedControls() {
+      return [...els.controls.querySelectorAll('input:checked')].map((input) => input.value)
+    }
+
+    function paragraph(text) {
+      return {
+        nodeType: 'paragraph',
+        data: {},
+        content: [{ nodeType: 'text', value: text, marks: [], data: {} }],
+      }
+    }
+
+    function readInitialValue() {
+      const format = els.initialFormat.value
+      if (format === 'null') {
+        return null
+      }
+      const raw = els.initialValue.value
+      if (format === 'string') {
+        return raw
+      }
+      return JSON.parse(raw)
+    }
+
+    function currentModel() {
+      return {
+        initialValue: readInitialValue(),
+        controls: selectedControls(),
+        value: null,
+        valueStringified: null,
+        valuePlainText: null,
+      }
+    }
+
+    function postToEditor(payload) {
+      els.editor.contentWindow.postMessage(payload, '*')
+    }
+
+    function applyModel() {
+      els.error.textContent = ''
+      try {
+        postToEditor({ type: 'playground:setModel', model: currentModel() })
+      } catch (error) {
+        els.error.textContent = error.message
+      }
+    }
+
+    function syncIframeSize() {
+      els.editor.style.width = `${els.iframeWidth.value}px`
+      els.editor.style.height = `${els.iframeHeight.value}px`
+    }
+
+    function reloadIframe() {
+      els.editor.src = `/editor.html?t=${Date.now()}`
+    }
+
+    els.iframeWidth.addEventListener('input', syncIframeSize)
+    els.iframeHeight.addEventListener('input', syncIframeSize)
+    els.apply.addEventListener('click', applyModel)
+    els.reload.addEventListener('click', reloadIframe)
+    els.longContent.addEventListener('click', () => {
+      const content = Array.from({ length: 24 }, (_, index) => (
+        paragraph(`Paragraph ${index + 1}. Keep typing past the iframe so you can check whether the editor scrolls inside the frame instead of growing it.`)
+      ))
+      els.initialValue.value = JSON.stringify({
+        nodeType: 'document',
+        data: {},
+        content,
+      }, null, 2)
+      applyModel()
+    })
+
+    window.addEventListener('message', (event) => {
+      const data = event.data
+      if (!data || typeof data !== 'object') {
+        return
+      }
+      if (data.type === 'playground:ready') {
+        applyModel()
+      }
+      if (data.type === 'playground:modelUpdate') {
+        els.output.textContent = JSON.stringify({
+          hasChanged: data.model.hasChanged,
+          valuePlainText: data.model.valuePlainText,
+          valueStringified: data.model.valueStringified,
+          value: data.model.value,
+        }, null, 2)
+      }
+    })
+
+    syncIframeSize()
+  </script>
+</body>
+</html>
