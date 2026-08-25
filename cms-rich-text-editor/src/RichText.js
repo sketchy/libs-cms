@@ -92,7 +92,9 @@ export const RichText = ({ model, modelUpdate }) => {
   const parsedHostValue = parseInitialValue(initialValue)
   const incomingDoc = parsedHostValue || DEFAULTS.value
   const fellThroughToDefault = !parsedHostValue
-  const hostDocChanged = lastSeenInitialValue === undefined || !equal(lastSeenInitialValue, incomingDoc)
+  const isEchoOfPublished = lastPublishedDoc != null && equal(incomingDoc, lastPublishedDoc)
+  const hostDocChanged = !isEchoOfPublished
+    && (lastSeenInitialValue === undefined || !equal(lastSeenInitialValue, incomingDoc))
 
   const prevInitialValueRef = React.useRef({ seen: false, value: undefined })
   const initialValueSameIdentity = prevInitialValueRef.current.seen
@@ -120,6 +122,7 @@ export const RichText = ({ model, modelUpdate }) => {
     height,
     heightType: typeof height,
     fellThroughToDefault,
+    isEchoOfPublished,
     hostDocChanged,
   })
 

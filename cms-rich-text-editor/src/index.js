@@ -1,13 +1,62 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { log } from './debugRte';
+import { log, useLifecycle } from './debugRte';
 import { ErrorBoundary, installGlobalCrashReporter } from './crashReporter';
+import { installIframeContainment } from './containIframe';
 import { RichText } from "./RichText";
 
 installGlobalCrashReporter()
+installIframeContainment()
 log('boot');
 
-const ConnectedComponent = Retool.connectReactComponent(RichText)
+const retoolApi = {
+  model: null,
+  modelUpdate: () => {},
+}
+const apiListeners = new Set()
+
+function notifyRetoolApi() {
+  apiListeners.forEach((listener) => listener())
+}
+
+function persistModelUpdate(payload) {
+  if (typeof retoolApi.modelUpdate === 'function') {
+    retoolApi.modelUpdate(payload)
+  }
+}
+
+function RetoolBridge({ model, modelUpdate }) {
+  retoolApi.model = model
+  retoolApi.modelUpdate = modelUpdate
+  useLifecycle('RetoolBridge')
+  React.useLayoutEffect(() => {
+    notifyRetoolApi()
+  })
+  return null
+}
+
+function PersistentRichText() {
+  const [, setRevision] = React.useState(0)
+
+  React.useLayoutEffect(() => {
+    const onApi = () => setRevision((value) => value + 1)
+    apiListeners.add(onApi)
+    return () => apiListeners.delete(onApi)
+  }, [])
+
+  if (!retoolApi.model) {
+    return null
+  }
+
+  return (
+    <RichText
+      model={retoolApi.model}
+      modelUpdate={persistModelUpdate}
+    />
+  )
+}
+
+const ConnectedBridge = Retool.connectReactComponent(RetoolBridge)
 
 function applyIframeFill(element) {
   element.style.overflow = 'hidden'
@@ -24,10 +73,11 @@ fillCss.textContent = `
     height: 100%;
     max-height: 100%;
     overflow: hidden;
+    overflow-anchor: none;
     margin: 0;
     overscroll-behavior: none;
   }
-  body > div {
+  #rte-editor-root {
     position: absolute;
     inset: 0;
     overflow: hidden;
@@ -35,10 +85,14 @@ fillCss.textContent = `
 `
 document.head.appendChild(fillCss)
 
+const bridgeNode = document.createElement('div')
+bridgeNode.id = 'rte-retool-bridge'
+bridgeNode.style.display = 'none'
+document.body.appendChild(bridgeNode)
+
 const mountNode = document.createElement('div')
+mountNode.id = 'rte-editor-root'
 applyIframeFill(mountNode)
-mountNode.style.position = 'absolute'
-mountNode.style.inset = '0'
 document.body.appendChild(mountNode)
 
 function lockToIframeViewport() {
@@ -60,10 +114,10 @@ function lockToIframeViewport() {
 lockToIframeViewport()
 window.addEventListener('resize', lockToIframeViewport)
 
+ReactDOM.render(<ConnectedBridge />, bridgeNode)
 ReactDOM.render(
   <ErrorBoundary>
-    <ConnectedComponent />
+    <PersistentRichText />
   </ErrorBoundary>,
   mountNode
 );
-

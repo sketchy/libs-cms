@@ -11,6 +11,7 @@ import { cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
 import { log, useLifecycle } from '../debugRte';
+import { scrollRangeIntoContainer } from '../containIframe';
 
 function useStableDeepValue(value) {
   const ref = React.useRef(value)
@@ -115,6 +116,10 @@ export const Editor = (props) => {
               editableProps={{
                 className: plateClassNames,
                 readOnly: props.isDisabled,
+                scrollSelectionIntoView: (_editor, domRange) => {
+                  const editable = document.querySelector('[data-slate-editor="true"]')
+                  scrollRangeIntoContainer(editable, domRange)
+                },
                 // Slate sets position:relative inline; override so the
                 // contenteditable cannot grow the iframe document.
                 style: {
