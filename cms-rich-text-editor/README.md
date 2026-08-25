@@ -10,8 +10,8 @@
 - [More Info](https://coda.io/d/Product-Project-Cortex_dhy-qH2Cem5/Retool-Learnings-Best-Practices_suL_Z#_lu7Mn)
 
 How to develop / test:
-- Run `yarn dev`, this outputs the dev dist build to `localhost:8080/index.js`
-- Within Retool you need to change the script cdn link that loads the rich text editor to this localhost link, this will load your local file with the updates.
+- Run `yarn playground` and open `http://localhost:8081`. This loads the editor in a local iframe with a mocked Retool model (`initialValue`, `height`, `controls`) so you can iterate without Retool. Debug logs are on by default (`[DEBUG-rte]` in the iframe console).
+- To test against a real Retool app instead: run `yarn dev` (serves `localhost:8080/index.js`) and point the custom component iframe script at that URL.
 
 How to build:
 - `yarn`
