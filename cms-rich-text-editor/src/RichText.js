@@ -40,22 +40,27 @@ const DEFAULTS = {
   value: defaultInitialValue,
 }
 
+function isContentfulDocument(value) {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && (value.nodeType === 'document' || Array.isArray(value.content))
+  )
+}
+
 function parseInitialValue(initialValue) {
   if (typeof initialValue === 'string' && initialValue.length) {
     try {
-      return JSON.parse(initialValue)
+      const parsed = JSON.parse(initialValue)
+      return isContentfulDocument(parsed) ? parsed : undefined
     } catch (e) {
       console.error('Could not parse string as JSON for rich text', e)
       return undefined
     }
   }
 
-  if (
-    initialValue
-    && typeof initialValue === 'object'
-    && !Array.isArray(initialValue)
-    && (initialValue.nodeType === 'document' || Array.isArray(initialValue.content))
-  ) {
+  if (isContentfulDocument(initialValue)) {
     return initialValue
   }
 
@@ -117,11 +122,14 @@ export const RichText = ({ model, modelUpdate }) => {
     hostDocChanged,
   })
 
+  const modelUpdateRef = React.useRef(modelUpdate)
+  modelUpdateRef.current = modelUpdate
+
   React.useEffect(() => {
     if (lastPublishedDoc && !equal(lastPublishedDoc, incomingDoc)) {
       const nextModel = toModelPayload(lastPublishedDoc, true)
       log('useEffect skipped clobber', { modelUpdate: nextModel })
-      modelUpdate(nextModel)
+      modelUpdateRef.current(nextModel)
       return
     }
 
@@ -132,7 +140,7 @@ export const RichText = ({ model, modelUpdate }) => {
     hasSeededOutputs = true
     const nextModel = toModelPayload(lastPublishedDoc || incomingDoc, false)
     log('useEffect is running', { modelUpdate: nextModel })
-    modelUpdate(nextModel)
+    modelUpdateRef.current(nextModel)
   }, [initialValue])
 
   const onChange = React.useCallback((value) => {
@@ -141,8 +149,8 @@ export const RichText = ({ model, modelUpdate }) => {
     const nextModel = toModelPayload(value, true)
     log('onChange', { value, stringifiedValue: nextModel.valueStringified })
     log('modelUpdate', { modelUpdate: nextModel })
-    modelUpdate(nextModel)
-  }, [modelUpdate])
+    modelUpdateRef.current(nextModel)
+  }, [])
 
   const onAction = React.useCallback((action) => {
     log('onAction', { action })
