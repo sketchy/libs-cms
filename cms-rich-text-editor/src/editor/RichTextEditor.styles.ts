@@ -5,10 +5,10 @@ const STYLE_EDITOR_BORDER = `1px solid ${tokens.gray400}`;
 
 export const styles = {
   root: css({
-    position: 'relative',
+    position: 'absolute',
+    inset: 0,
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
     minHeight: 0,
     overflow: 'hidden',
   }),
@@ -18,13 +18,12 @@ export const styles = {
   editorSlot: css({
     flex: 1,
     minHeight: 0,
-    display: 'flex',
-    flexDirection: 'column',
+    position: 'relative',
     overflow: 'hidden',
   }),
   editor: css({
-    flex: 1,
-    minHeight: 0,
+    position: 'absolute',
+    inset: 0,
     borderRadius: `0 0 ${tokens.borderRadiusMedium} ${tokens.borderRadiusMedium}`,
     border: STYLE_EDITOR_BORDER,
     borderTop: 0,
@@ -32,6 +31,7 @@ export const styles = {
     fontSize: '14px',
     fontFamily: tokens.fontStackPrimary,
     overflowY: 'auto',
+    overscrollBehavior: 'contain',
     background: tokens.colorWhite,
     outline: 'none',
     whiteSpace: 'pre-wrap',

@@ -10,7 +10,7 @@ import { styles } from './RichTextEditor.styles';
 import { cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
-import { useLifecycle } from '../debugRte';
+import { log, useLifecycle } from '../debugRte';
 
 function useStableDeepValue(value) {
   const ref = React.useRef(value)
@@ -20,8 +20,46 @@ function useStableDeepValue(value) {
   return ref.current
 }
 
+function useLayoutProbe() {
+  React.useEffect(() => {
+    const root = document.querySelector('[data-test-id="rich-text-editor"]')
+    const editable = root?.querySelector('[data-slate-editor="true"], [contenteditable="true"]')
+    const slot = editable?.parentElement
+    if (!root || !slot || !editable) {
+      return undefined
+    }
+
+    let lastKey = ''
+    const report = (reason) => {
+      const payload = {
+        reason,
+        innerHeight: window.innerHeight,
+        htmlScrollHeight: document.documentElement.scrollHeight,
+        slotClientHeight: slot.clientHeight,
+        editableClientHeight: editable.clientHeight,
+        editableScrollHeight: editable.scrollHeight,
+        editorGrewPastSlot: editable.clientHeight > slot.clientHeight + 1,
+        innerCanScroll: editable.scrollHeight > editable.clientHeight + 1,
+      }
+      const key = JSON.stringify(payload)
+      if (key === lastKey) {
+        return
+      }
+      lastKey = key
+      log('layout', payload)
+    }
+
+    report('mount')
+    const observer = new ResizeObserver(() => report('resize'))
+    observer.observe(slot)
+    observer.observe(editable)
+    return () => observer.disconnect()
+  }, [])
+}
+
 export const Editor = (props) => {
   useLifecycle('Editor')
+  useLayoutProbe()
   const id = 'rich-text-editor'
   const controlsKey = JSON.stringify(props.controls)
   const restrictedMarksKey = JSON.stringify(props.restrictedMarks)
@@ -77,6 +115,17 @@ export const Editor = (props) => {
               editableProps={{
                 className: plateClassNames,
                 readOnly: props.isDisabled,
+                // Slate sets position:relative inline; override so the
+                // contenteditable cannot grow the iframe document.
+                style: {
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                },
               }}
             />
           </div>
