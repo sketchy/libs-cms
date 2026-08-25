@@ -1,4 +1,5 @@
 import React from 'react'
+import equal from 'fast-deep-equal'
 import { Editor } from './editor/Editor'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer';
 import { log, recordPublished, useLifecycle } from './debugRte'
@@ -39,29 +40,69 @@ const DEFAULTS = {
   value: defaultInitialValue,
 }
 
+function parseInitialValue(initialValue) {
+  if (typeof initialValue === 'string' && initialValue.length) {
+    try {
+      return JSON.parse(initialValue)
+    } catch (e) {
+      console.error('Could not parse string as JSON for rich text', e)
+      return undefined
+    }
+  }
+
+  if (
+    initialValue
+    && typeof initialValue === 'object'
+    && !Array.isArray(initialValue)
+    && (initialValue.nodeType === 'document' || Array.isArray(initialValue.content))
+  ) {
+    return initialValue
+  }
+
+  return undefined
+}
+
+function toModelPayload(value, hasChanged) {
+  const stringifiedValue = JSON.stringify(value)
+  return {
+    hasChanged,
+    value,
+    valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
+    valuePlainText: documentToPlainTextString(value),
+  }
+}
+
+// Survives React remount in the same iframe; cleared on a full document reload.
+let lastPublishedDoc = null
+let lastSeenInitialValue = undefined
+let hasSeededOutputs = false
+
 export const RichText = ({ model, modelUpdate }) => {
   // Model, etc comes from Retool module inputs
   // Thus far is only used for rich text editor:
   // https://sketchymedical.retool.com/editor/6e455d08-92eb-11ee-8a52-0fc062da2416/Cortex/Contentful%20Rich%20Text%20Editor
   const { height, controls, initialValue } = model
 
+  const parsedHostValue = parseInitialValue(initialValue)
+  const incomingDoc = parsedHostValue || DEFAULTS.value
+  const fellThroughToDefault = !parsedHostValue
+  const hostDocChanged = lastSeenInitialValue === undefined || !equal(lastSeenInitialValue, incomingDoc)
+
   const prevInitialValueRef = React.useRef({ seen: false, value: undefined })
   const initialValueSameIdentity = prevInitialValueRef.current.seen
     && prevInitialValueRef.current.value === initialValue
   prevInitialValueRef.current = { seen: true, value: initialValue }
 
-  // Handle stringified json, allows passing of json or stringified json
-  let richTextValue;
-  if (typeof initialValue === 'string' && initialValue.length) {
-    try {
-      richTextValue = JSON.parse(`${initialValue}`)
-    } catch (e) {
-      console.error('Could not parse string as JSON for rich text', e)
-    }
+  const editorValueRef = React.useRef(null)
+  if (hostDocChanged) {
+    lastSeenInitialValue = incomingDoc
+    lastPublishedDoc = incomingDoc
+    editorValueRef.current = incomingDoc
+  } else if (editorValueRef.current === null) {
+    editorValueRef.current = lastPublishedDoc || incomingDoc
   }
+  const appliedValue = editorValueRef.current
 
-  const fellThroughToDefault = !richTextValue
-  const appliedValue = richTextValue || DEFAULTS.value
   useLifecycle('RichText', appliedValue)
 
   log('render', {
@@ -73,42 +114,47 @@ export const RichText = ({ model, modelUpdate }) => {
     height,
     heightType: typeof height,
     fellThroughToDefault,
+    hostDocChanged,
   })
 
   React.useEffect(() => {
-    const nextModel = {
-      hasChanged: false,
-      value: richTextValue,
-      valueStringified: typeof initialValue === 'string' && initialValue?.length ? initialValue : undefined,
-      valuePlainText: richTextValue ? documentToPlainTextString(richTextValue) : undefined,
-    };
+    if (lastPublishedDoc && !equal(lastPublishedDoc, incomingDoc)) {
+      const nextModel = toModelPayload(lastPublishedDoc, true)
+      log('useEffect skipped clobber', { modelUpdate: nextModel })
+      modelUpdate(nextModel)
+      return
+    }
+
+    if (hasSeededOutputs && !hostDocChanged) {
+      return
+    }
+
+    hasSeededOutputs = true
+    const nextModel = toModelPayload(lastPublishedDoc || incomingDoc, false)
     log('useEffect is running', { modelUpdate: nextModel })
-    modelUpdate(nextModel);
+    modelUpdate(nextModel)
   }, [initialValue])
+
+  const onChange = React.useCallback((value) => {
+    lastPublishedDoc = value
+    recordPublished(value)
+    const nextModel = toModelPayload(value, true)
+    log('onChange', { value, stringifiedValue: nextModel.valueStringified })
+    log('modelUpdate', { modelUpdate: nextModel })
+    modelUpdate(nextModel)
+  }, [modelUpdate])
+
+  const onAction = React.useCallback((action) => {
+    log('onAction', { action })
+  }, [])
 
   return (
     <Editor
       height={typeof height === 'number' ? height : DEFAULTS.height} // retool passes a blank string for undefined values
       controls={controls || DEFAULTS.controls}
       value={appliedValue}
-      onChange={(value) => {
-        const stringifiedValue = JSON.stringify(value);
-
-        log('onChange', { value, stringifiedValue })
-        recordPublished(value)
-
-        const nextModel = {
-          hasChanged: true,
-          value: value,
-          valueStringified: stringifiedValue?.length ? stringifiedValue : undefined,
-          valuePlainText: documentToPlainTextString(value),
-        };
-
-        log('modelUpdate', { modelUpdate: nextModel })
-
-        modelUpdate(nextModel);
-      }}
-      onAction={(action) => log('onAction', { action })}
+      onChange={onChange}
+      onAction={onAction}
     />
   );
 }
