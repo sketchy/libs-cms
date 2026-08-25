@@ -1,13 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { log, useLifecycle } from './debugRte';
-import { ErrorBoundary, installGlobalCrashReporter } from './crashReporter';
+import { ErrorBoundary } from './crashReporter';
 import { installIframeContainment } from './containIframe';
 import { RichText } from "./RichText";
 
-installGlobalCrashReporter()
 installIframeContainment()
-log('boot');
 
 const retoolApi = {
   model: null,
@@ -25,10 +22,12 @@ function persistModelUpdate(payload) {
   }
 }
 
+// Retool.connectReactComponent remounts whenever the host re-renders. Keep
+// that tree as a hidden bridge and mount the editor separately so Plate/Slate
+// is not torn down on every Retool update.
 function RetoolBridge({ model, modelUpdate }) {
   retoolApi.model = model
   retoolApi.modelUpdate = modelUpdate
-  useLifecycle('RetoolBridge')
   React.useLayoutEffect(() => {
     notifyRetoolApi()
   })
@@ -103,11 +102,6 @@ function lockToIframeViewport() {
   ;[document.documentElement, document.body, mountNode].forEach((element) => {
     element.style.height = height
     element.style.maxHeight = height
-  })
-  log('viewport lock', {
-    innerHeight: window.innerHeight,
-    htmlScrollHeight: document.documentElement.scrollHeight,
-    bodyScrollHeight: document.body.scrollHeight,
   })
 }
 

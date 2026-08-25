@@ -1,7 +1,5 @@
 import React from 'react'
 
-window.__RTE_DEBUG__ = true
-
 const DEFAULT_MODEL = {
   initialValue: null,
   height: 180,
@@ -42,10 +40,6 @@ function createRetoolMock() {
     if (data.type === 'playground:setModel') {
       model = { ...model, ...data.model }
       emit()
-    }
-
-    if (data.type === 'playground:setDebug') {
-      window.__RTE_DEBUG__ = Boolean(data.enabled)
     }
   })
 

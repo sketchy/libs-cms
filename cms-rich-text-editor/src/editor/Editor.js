@@ -2,15 +2,13 @@ import React from 'react'
 import { Plate, PlateProvider } from '@udecode/plate-common';
 import equal from 'fast-deep-equal';
 import Toolbar from './Toolbar';
-import StickyToolbarWrapper from './Toolbar/components/StickyToolbarWrapper';
 import { normalizeInitialValue } from './internal';
 import { toSlateValue } from './helpers/toSlateValue';
 import { ContentfulEditorIdProvider } from './ContentfulEditorProvider';
 import { styles } from './RichTextEditor.styles';
-import { cx } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
-import { log, useLifecycle } from '../debugRte';
 import { scrollRangeIntoContainer } from '../containIframe';
 
 function useStableDeepValue(value) {
@@ -21,46 +19,7 @@ function useStableDeepValue(value) {
   return ref.current
 }
 
-function useLayoutProbe() {
-  React.useEffect(() => {
-    const root = document.querySelector('[data-test-id="rich-text-editor"]')
-    const editable = root?.querySelector('[data-slate-editor="true"], [contenteditable="true"]')
-    const slot = editable?.parentElement
-    if (!root || !slot || !editable) {
-      return undefined
-    }
-
-    let lastKey = ''
-    const report = (reason) => {
-      const payload = {
-        reason,
-        innerHeight: window.innerHeight,
-        htmlScrollHeight: document.documentElement.scrollHeight,
-        slotClientHeight: slot.clientHeight,
-        editableClientHeight: editable.clientHeight,
-        editableScrollHeight: editable.scrollHeight,
-        editorGrewPastSlot: editable.clientHeight > slot.clientHeight + 1,
-        innerCanScroll: editable.scrollHeight > editable.clientHeight + 1,
-      }
-      const key = JSON.stringify(payload)
-      if (key === lastKey) {
-        return
-      }
-      lastKey = key
-      log('layout', payload)
-    }
-
-    report('mount')
-    const observer = new ResizeObserver(() => report('resize'))
-    observer.observe(slot)
-    observer.observe(editable)
-    return () => observer.disconnect()
-  }, [])
-}
-
 export const Editor = (props) => {
-  useLifecycle('Editor')
-  useLayoutProbe()
   const id = 'rich-text-editor'
   const controlsKey = JSON.stringify(props.controls)
   const restrictedMarksKey = JSON.stringify(props.restrictedMarks)
@@ -90,9 +49,14 @@ export const Editor = (props) => {
     props.isToolbarHidden && styles.hiddenToolbar
   );
 
+  const rootClassName = cx(
+    styles.root,
+    typeof props.height === 'number' ? css({ height: props.height }) : undefined
+  );
+
   return (
     <ContentfulEditorIdProvider value={id}>
-      <div className={styles.root} data-test-id="rich-text-editor">
+      <div className={rootClassName} data-test-id="rich-text-editor">
         <PlateProvider
           id={id}
           initialValue={initialValue}
@@ -100,9 +64,7 @@ export const Editor = (props) => {
           disableCorePlugins={disableCorePlugins}
         >
           <div className={styles.toolbarSlot}>
-            <StickyToolbarWrapper isDisabled={props.isDisabled}>
-              <Toolbar controls={props.controls} isDisabled={props.isDisabled} />
-            </StickyToolbarWrapper>
+            <Toolbar controls={props.controls} isDisabled={props.isDisabled} />
           </div>
 
           <SyncEditorChanges
@@ -139,4 +101,3 @@ export const Editor = (props) => {
     </ContentfulEditorIdProvider>
   )
 }
-

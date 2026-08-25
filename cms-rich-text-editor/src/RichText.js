@@ -2,7 +2,6 @@ import React from 'react'
 import equal from 'fast-deep-equal'
 import { Editor } from './editor/Editor'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer';
-import { log, recordPublished, useLifecycle } from './debugRte'
 import { createGuardedModelUpdate } from './crashReporter'
 
 // Blank rich text json value to be used as "default" when no value is provided
@@ -91,15 +90,11 @@ export const RichText = ({ model, modelUpdate }) => {
 
   const parsedHostValue = parseInitialValue(initialValue)
   const incomingDoc = parsedHostValue || DEFAULTS.value
-  const fellThroughToDefault = !parsedHostValue
+  // Retool echoes modelUpdate back as a new initialValue object. Treat that
+  // echo as a no-op so live edits are not reset and modelUpdate cannot loop.
   const isEchoOfPublished = lastPublishedDoc != null && equal(incomingDoc, lastPublishedDoc)
   const hostDocChanged = !isEchoOfPublished
     && (lastSeenInitialValue === undefined || !equal(lastSeenInitialValue, incomingDoc))
-
-  const prevInitialValueRef = React.useRef({ seen: false, value: undefined })
-  const initialValueSameIdentity = prevInitialValueRef.current.seen
-    && prevInitialValueRef.current.value === initialValue
-  prevInitialValueRef.current = { seen: true, value: initialValue }
 
   const editorValueRef = React.useRef(null)
   if (hostDocChanged) {
@@ -110,21 +105,6 @@ export const RichText = ({ model, modelUpdate }) => {
     editorValueRef.current = lastPublishedDoc || incomingDoc
   }
   const appliedValue = editorValueRef.current
-
-  useLifecycle('RichText', appliedValue)
-
-  log('render', {
-    name: 'RichText',
-    initialValueType: initialValue === null ? 'null' : typeof initialValue,
-    initialValueSameIdentity,
-    initialValueLength: typeof initialValue === 'string' ? initialValue.length : undefined,
-    initialValueNodeType: initialValue && typeof initialValue === 'object' ? initialValue.nodeType : undefined,
-    height,
-    heightType: typeof height,
-    fellThroughToDefault,
-    isEchoOfPublished,
-    hostDocChanged,
-  })
 
   const rawModelUpdateRef = React.useRef(modelUpdate)
   rawModelUpdateRef.current = modelUpdate
@@ -143,30 +123,20 @@ export const RichText = ({ model, modelUpdate }) => {
     }
 
     if (lastPublishedDoc && !equal(lastPublishedDoc, incomingDoc)) {
-      const nextModel = toModelPayload(lastPublishedDoc, true)
-      log('useEffect skipped clobber', { modelUpdate: nextModel })
-      modelUpdateRef.current(nextModel)
+      modelUpdateRef.current(toModelPayload(lastPublishedDoc, true))
       return
     }
 
     hasSeededOutputs = true
-    const nextModel = toModelPayload(lastPublishedDoc || incomingDoc, false)
-    log('useEffect is running', { modelUpdate: nextModel })
-    modelUpdateRef.current(nextModel)
+    modelUpdateRef.current(toModelPayload(lastPublishedDoc || incomingDoc, false))
   }, [initialValue])
 
   const onChange = React.useCallback((value) => {
     lastPublishedDoc = value
-    recordPublished(value)
-    const nextModel = toModelPayload(value, true)
-    log('onChange', { value, stringifiedValue: nextModel.valueStringified })
-    log('modelUpdate', { modelUpdate: nextModel })
-    modelUpdateRef.current(nextModel)
+    modelUpdateRef.current(toModelPayload(value, true))
   }, [])
 
-  const onAction = React.useCallback((action) => {
-    log('onAction', { action })
-  }, [])
+  const onAction = React.useCallback(() => {}, [])
 
   return (
     <Editor

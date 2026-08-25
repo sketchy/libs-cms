@@ -160,11 +160,6 @@
     <label for="initialValue">initialValue</label>
     <textarea id="initialValue" spellcheck="false"></textarea>
 
-    <label>
-      <input id="debug" type="checkbox" checked />
-      Debug logs (`window.__RTE_DEBUG__`)
-    </label>
-
     <div class="actions">
       <button id="apply" type="button">Apply model (no remount)</button>
       <button id="reload" class="secondary" type="button">Reload iframe</button>
@@ -234,7 +229,6 @@
       controls: document.getElementById('controls'),
       initialFormat: document.getElementById('initialFormat'),
       initialValue: document.getElementById('initialValue'),
-      debug: document.getElementById('debug'),
       apply: document.getElementById('apply'),
       reload: document.getElementById('reload'),
       longContent: document.getElementById('longContent'),
@@ -294,7 +288,6 @@
       els.error.textContent = ''
       try {
         postToEditor({ type: 'playground:setModel', model: currentModel() })
-        postToEditor({ type: 'playground:setDebug', enabled: els.debug.checked })
       } catch (error) {
         els.error.textContent = error.message
       }
@@ -313,9 +306,6 @@
     els.iframeHeight.addEventListener('input', syncIframeSize)
     els.apply.addEventListener('click', applyModel)
     els.reload.addEventListener('click', reloadIframe)
-    els.debug.addEventListener('change', () => {
-      postToEditor({ type: 'playground:setDebug', enabled: els.debug.checked })
-    })
     els.longContent.addEventListener('click', () => {
       const content = Array.from({ length: 24 }, (_, index) => (
         paragraph(`Paragraph ${index + 1}. Keep typing past the iframe so you can check whether the editor scrolls inside the frame instead of growing it.`)
