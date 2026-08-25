@@ -9,8 +9,10 @@ import { styles } from './RichTextEditor.styles';
 import { css, cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
+import { useLifecycle } from '../debugRte';
 
 export const Editor = (props) => {
+  useLifecycle('Editor')
   const id = 'rich-text-editor'
   const plugins = getPlugins(props.onAction, props.restrictedMarks, props.controls)
 

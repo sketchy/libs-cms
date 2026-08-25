@@ -4,6 +4,7 @@ import * as Contentful from '@contentful/rich-text-types';
 import { usePlateActions } from '@udecode/plate-common';
 import equal from 'fast-deep-equal';
 
+import { fingerprint, log, maybeLogVerdict } from '../debugRte';
 import { createOnChangeCallback } from './helpers/callbacks';
 import { usePlateSelectors } from './internal/hooks';
 import { setEditorValue } from './internal/transforms';
@@ -23,6 +24,12 @@ const useAcceptIncomingChanges = (incomingValue?: Value) => {
     if (equal(lastIncomingValue.current, incomingValue)) {
       return;
     }
+
+    log('incoming overwrite', {
+      incoming: fingerprint(incomingValue),
+      editorChildren: fingerprint(editor?.children),
+    });
+    maybeLogVerdict('incoming overwrite', incomingValue);
 
     lastIncomingValue.current = incomingValue;
     setEditorValue(editor, incomingValue);
