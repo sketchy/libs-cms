@@ -144,9 +144,6 @@
       </div>
     </div>
 
-    <label for="modelHeight">Model height</label>
-    <input id="modelHeight" type="number" min="0" value="180" />
-
     <label>Controls</label>
     <div class="controls" id="controls"></div>
 
@@ -225,7 +222,6 @@
     const els = {
       iframeWidth: document.getElementById('iframeWidth'),
       iframeHeight: document.getElementById('iframeHeight'),
-      modelHeight: document.getElementById('modelHeight'),
       controls: document.getElementById('controls'),
       initialFormat: document.getElementById('initialFormat'),
       initialValue: document.getElementById('initialValue'),
@@ -272,7 +268,6 @@
     function currentModel() {
       return {
         initialValue: readInitialValue(),
-        height: Number(els.modelHeight.value),
         controls: selectedControls(),
         value: null,
         valueStringified: null,

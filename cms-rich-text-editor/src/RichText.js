@@ -26,7 +26,6 @@ const defaultInitialValue = {
 
 // default values to use as fallbacks when no config value is provided
 const DEFAULTS = {
-  height: 180,
   controls: [
     'bold',
     'underline',
@@ -86,7 +85,7 @@ export const RichText = ({ model, modelUpdate }) => {
   // Model, etc comes from Retool module inputs
   // Thus far is only used for rich text editor:
   // https://sketchymedical.retool.com/editor/6e455d08-92eb-11ee-8a52-0fc062da2416/Cortex/Contentful%20Rich%20Text%20Editor
-  const { height, controls, initialValue } = model
+  const { controls, initialValue } = model
 
   const parsedHostValue = parseInitialValue(initialValue)
   const incomingDoc = parsedHostValue || DEFAULTS.value
@@ -140,7 +139,6 @@ export const RichText = ({ model, modelUpdate }) => {
 
   return (
     <Editor
-      height={typeof height === 'number' ? height : DEFAULTS.height} // retool passes a blank string for undefined values
       controls={controls || DEFAULTS.controls}
       value={appliedValue}
       onChange={onChange}

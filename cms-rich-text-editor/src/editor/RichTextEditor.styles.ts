@@ -6,11 +6,7 @@ const STYLE_EDITOR_BORDER = `1px solid ${tokens.gray400}`;
 export const styles = {
   root: css({
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '100%',
-    maxHeight: '100%',
+    inset: 0,
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,

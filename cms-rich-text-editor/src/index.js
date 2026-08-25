@@ -98,6 +98,7 @@ function lockToIframeViewport() {
   if (!window.innerHeight) {
     return
   }
+  // Editor height follows the Retool iframe, not a model.height input.
   const height = `${window.innerHeight}px`
   ;[document.documentElement, document.body, mountNode].forEach((element) => {
     element.style.height = height

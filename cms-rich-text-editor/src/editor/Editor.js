@@ -6,7 +6,7 @@ import { normalizeInitialValue } from './internal';
 import { toSlateValue } from './helpers/toSlateValue';
 import { ContentfulEditorIdProvider } from './ContentfulEditorProvider';
 import { styles } from './RichTextEditor.styles';
-import { css, cx } from '@emotion/css';
+import { cx } from '@emotion/css';
 import { SyncEditorChanges } from './SyncEditorChanges';
 import { getPlugins, disableCorePlugins } from './plugins';
 import { scrollRangeIntoContainer } from '../containIframe';
@@ -49,14 +49,9 @@ export const Editor = (props) => {
     props.isToolbarHidden && styles.hiddenToolbar
   );
 
-  const rootClassName = cx(
-    styles.root,
-    typeof props.height === 'number' ? css({ height: props.height }) : undefined
-  );
-
   return (
     <ContentfulEditorIdProvider value={id}>
-      <div className={rootClassName} data-test-id="rich-text-editor">
+      <div className={styles.root} data-test-id="rich-text-editor">
         <PlateProvider
           id={id}
           initialValue={initialValue}

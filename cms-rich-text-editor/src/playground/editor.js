@@ -2,7 +2,6 @@ import React from 'react'
 
 const DEFAULT_MODEL = {
   initialValue: null,
-  height: 180,
   controls: [
     'bold',
     'underline',
